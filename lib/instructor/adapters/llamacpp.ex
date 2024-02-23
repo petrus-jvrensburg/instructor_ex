@@ -149,6 +149,17 @@ defmodule Instructor.Adapters.Llamacpp do
     "<s>#{prompt}"
   end
 
+  defp apply_chat_template(:chat_ml, messages) do
+    prompt =
+      messages
+      |> Enum.map_join("\n", fn
+        %{role: role, content: content} -> "<|im_start|>#{role}\n#{content}</im_end>"
+        %{content: content} -> "<|im_start|>user\n#{content}</im_end>"
+      end)
+
+    "#{prompt}\n<|im_start|>assistant\n"
+  end
+
   defp url() do
     Keyword.get(config(), :url, "http://localhost:8080/completion")
   end
