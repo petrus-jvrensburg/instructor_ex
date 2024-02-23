@@ -1,6 +1,6 @@
 defmodule Instructor.Adapters.Llamacpp do
   @moduledoc """
-  Runs against the llama.cpp server. To be clear this calls the llamacpp specific
+  Runs against the llama.cpp server. To be clear, this calls the llamacpp-specific
   endpoints, not the open-ai compliant ones.
 
   You can read more about it here:
@@ -82,7 +82,9 @@ defmodule Instructor.Adapters.Llamacpp do
       fn acc -> acc end
     )
     |> Stream.map(fn %{"content" => chunk} ->
-      to_openai_streaming_response(chunk)
+      chunk
+         |> String.replace("<dummy32000>", "")
+         |> to_openai_streaming_response()
     end)
   end
 
@@ -106,7 +108,11 @@ defmodule Instructor.Adapters.Llamacpp do
 
     case response do
       %{status: 200, body: %{"content" => params}} ->
-        {:ok, to_openai_response(params)}
+
+        {:ok,
+         params
+         |> String.replace("<dummy32000>", "")
+         |> to_openai_response()}
 
       _ ->
         nil
