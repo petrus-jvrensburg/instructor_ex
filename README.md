@@ -103,7 +103,7 @@ In your mix.exs,
 ```elixir
 def deps do
   [
-    {:instructor, "~> 0.0.5b"}
+    {:instructor, "~> 0.0.5"}
   ]
 end
 ```
