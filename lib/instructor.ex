@@ -428,6 +428,8 @@ defmodule Instructor do
         {%{}, response_model}
       end
 
+    Logger.debug(params, pretty: true, label: :params)
+
     with {:llm, {:ok, response}} <- {:llm, adapter(config).chat_completion(params, config)},
          {:valid_json, {:ok, params}} <- {:valid_json, parse_response_for_mode(mode, response)},
          changeset <- cast_all(model, params),
@@ -480,8 +482,18 @@ defmodule Instructor do
     end
   end
 
-  defp parse_response_for_mode(:md_json, %{"choices" => [%{"message" => %{"content" => content}}]}),
-       do: Jason.decode(content)
+  defp parse_response_for_mode(
+         :md_json,
+         %{"choices" => [%{"message" => %{"content" => content}}]} = result
+       ) do
+    Logger.debug(result)
+
+    content
+    |> String.replace("```json", "")
+    |> String.replace("```", "")
+    |> String.trim()
+    |> Jason.decode()
+  end
 
   defp parse_response_for_mode(:json, %{"choices" => [%{"message" => %{"content" => content}}]}),
     do: Jason.decode(content)
@@ -566,7 +578,7 @@ defmodule Instructor do
               [
                 %{
                   role: "assistant",
-                  content: "Here is the perfectly correctly formatted JSON\n```json"
+                  content: "Here is the perfectly correctly formatted JSON:"
                 }
               ]
 
@@ -577,7 +589,8 @@ defmodule Instructor do
 
     case mode do
       :md_json ->
-        params |> Keyword.put(:stop, "```")
+        # |> Keyword.put(:stop, "\n```")
+        params
 
       :json ->
         params

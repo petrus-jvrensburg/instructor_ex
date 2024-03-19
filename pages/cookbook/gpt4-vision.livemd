@@ -5,7 +5,8 @@
 ```elixir
 Mix.install(
   [
-    {:instructor, path: Path.expand("../../", __DIR__)},
+    {:instructor, path: "/Users/petrus/code/instructor_ex"},
+    # {:instructor, git: "https://github.com/thmsmlr/instructor_ex.git", branch: "main"},
     {:kino, "~> 0.12.3"}
   ],
   config: [
@@ -69,6 +70,67 @@ result
 
 <!-- livebook:{"output":true} -->
 
+````
+params: [
+  max_retries: 0,
+  model: "gpt-4-vision-preview",
+  response_model: Product,
+  mode: :md_json,
+  messages: [
+    %{
+      content: "As a genius expert, your task is to understand the content and provide the parsed objects in json that match the following json_schema:\n\n{\"type\":\"object\",\"description\":\"\",\"title\":\"Product\",\"required\":[\"color\",\"currency\",\"name\",\"price\"],\"properties\":{\"name\":{\"type\":\"string\",\"title\":\"name\"},\"currency\":{\"type\":\"string\",\"enum\":[\"usd\",\"gbp\",\"eur\",\"cny\"],\"title\":\"currency\"},\"color\":{\"type\":\"string\",\"title\":\"color\"},\"price\":{\"type\":\"number\",\"format\":\"float\",\"title\":\"price\"}}}\n\n\n",
+      role: "system"
+    },
+    %{
+      content: [
+        %{
+          type: "text",
+          text: "What is the product details of the following image?"
+        },
+        %{
+          type: "image_url",
+          image_url: %{
+            detail: "high",
+            url: "data:image/png;base64,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" <> ...
+          }
+        }
+      ],
+      role: "user"
+    },
+    %{
+      content: "Here is the perfectly correctly formatted JSON:",
+      role: "assistant"
+    }
+  ],
+  max_tokens: 1800
+]
+result: %{
+  "choices" => [
+    %{
+      "finish_reason" => "stop",
+      "index" => 0,
+      "message" => %{
+        "content" => "```json\n{\n  \"name\": \"Thomas Wooden Railway Thomas the Tank Engine\",\n  \"color\": \"Blue\",\n  \"currency\": \"usd\",\n  \"price\": 33.00\n}\n```",
+        "role" => "assistant"
+      }
+    }
+  ],
+  "created" => 1710860457,
+  "id" => "chatcmpl-94VFRrtfrrlNkz9D3Gy2on3XsWhK0",
+  "model" => "gpt-4-1106-vision-preview",
+  "object" => "chat.completion",
+  "system_fingerprint" => nil,
+  "usage" => %{
+    "completion_tokens" => 43,
+    "prompt_tokens" => 1245,
+    "total_tokens" => 1288
+  }
+}
+content: "```json\n{\n  \"name\": \"Thomas Wooden Railway Thomas the Tank Engine\",\n  \"color\": \"Blue\",\n  \"currency\": \"usd\",\n  \"price\": 33.00\n}\n```"
+````
+
+<!-- livebook:{"output":true} -->
+
 ```
 %Product{
   name: "Thomas Wooden Railway Thomas the Tank Engine",
@@ -78,4 +140,4 @@ result
 }
 ```
 
-<!-- livebook:{"offset":2014,"stamp":{"token":"XCP.cvfLZ4_ukILFG5Me7moeIt2yRSKSHOHEZM34roQzo-qC3Rf8l91bu4eIn8ykeusAuMoNq6D2TdCyzU0e8c99eoXrBMzNnyVnW2F41geUrriUJ2JN6VtKPgw","version":2}} -->
+<!-- livebook:{"offset":8380,"stamp":{"token":"XCP.TAP6T5DntiACCOpW5qmOxhBsZFuDxiGGEUue8e93tHPRVc2at8za31zxU8L16ZGTepd8X86TRV80Bh--qHlcV9QEDShlfvANYxX_oJYZ0fcPhGgjBRf0S7U","version":2}} -->
