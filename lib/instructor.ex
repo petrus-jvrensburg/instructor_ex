@@ -535,6 +535,21 @@ defmodule Instructor do
     ]
   end
 
+  defp echo_response(%{
+         "choices" => [
+           %{
+             "finish_reason" => nil,
+             "index" => 0,
+             "message" => message
+           }
+         ]
+       }) do
+    [
+      message
+      |> Map.new(fn {k, v} -> {String.to_atom(k), v} end)
+    ]
+  end
+
   defp params_for_mode(mode, response_model, params) do
     json_schema = JSONSchema.from_ecto_schema(response_model)
 
