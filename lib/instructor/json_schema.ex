@@ -17,7 +17,7 @@ defmodule Instructor.JSONSchema do
 
     title =
       if is_ecto_schema(ecto_schema) do
-        title_for(ecto_schema)
+        function_name_for(ecto_schema)
       else
         "root"
       end
@@ -94,13 +94,13 @@ defmodule Instructor.JSONSchema do
       |> Enum.filter(&(&1.relationship != :parent))
       |> Enum.map(fn association ->
         field = association.field
-        title = title_for(association.related)
+        title = function_name_for(association.related)
 
         value =
           if association.cardinality == :many do
             %{
               items: %{"$ref": "#/$defs/#{title}"},
-              title: title,
+              title: field,
               type: "array"
             }
           else
@@ -113,7 +113,7 @@ defmodule Instructor.JSONSchema do
 
     properties = Map.merge(properties, associations)
     required = Map.keys(properties) |> Enum.sort()
-    title = title_for(ecto_schema)
+    title = function_name_for(ecto_schema)
 
     associated_schemas =
       ecto_schema.__schema__(:associations)
@@ -180,6 +180,24 @@ defmodule Instructor.JSONSchema do
     to_string(ecto_schema) |> String.trim_leading("Elixir.")
   end
 
+  def function_name_for(ecto_schema) when is_atom(ecto_schema) do
+    tmp =
+      ecto_schema
+      |> to_string()
+      |> String.trim_leading("Elixir.")
+      |> String.split(".")
+      |> Enum.map(&Macro.underscore/1)
+      |> Enum.join("_")
+
+    tmp <> "_schema"
+  end
+
+  def function_name_for(%{
+        value: {:parameterized, Ecto.Embedded, %Ecto.Embedded{related: ecto_schema}}
+      }) do
+    function_name_for(ecto_schema)
+  end
+
   # Find all values in a map or list that match a predicate
   defp find_all_values(map, pred) when is_map(map) do
     map
@@ -234,7 +252,7 @@ defmodule Instructor.JSONSchema do
          {:parameterized, Ecto.Embedded, %Ecto.Embedded{cardinality: :many, related: related}}
        )
        when is_ecto_schema(related) do
-    title = title_for(related)
+    title = function_name_for(related)
 
     %{
       items: %{"$ref": "#/$defs/#{title}"},
@@ -268,7 +286,7 @@ defmodule Instructor.JSONSchema do
          {:parameterized, Ecto.Embedded, %Ecto.Embedded{cardinality: :one, related: related}}
        )
        when is_ecto_schema(related) do
-    %{"$ref": "#/$defs/#{title_for(related)}"}
+    %{"$ref": "#/$defs/#{function_name_for(related)}"}
   end
 
   defp for_type(

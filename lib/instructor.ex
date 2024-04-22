@@ -594,16 +594,14 @@ defmodule Instructor do
           %{
             type: "function",
             function: %{
-              "description" =>
-                "Correctly extracted `Schema` with all the required parameters with correct types",
-              "name" => "Schema",
+              "name" => JSONSchema.function_name_for(response_model),
               "parameters" => json_schema |> Jason.decode!()
             }
           }
         ])
         |> Keyword.put(:tool_choice, %{
           type: "function",
-          function: %{name: "Schema"}
+          function: %{name: JSONSchema.function_name_for(response_model)}
         })
     end
   end
