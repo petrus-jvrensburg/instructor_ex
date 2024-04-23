@@ -551,9 +551,29 @@ defmodule Instructor do
   end
 
   defp params_for_mode(mode, response_model, params) do
+    ecto_schema =
+      case response_model do
+        %{
+          value:
+            {:parameterized, Ecto.Embedded,
+             %Ecto.Embedded{cardinality: :many, related: ecto_schema}}
+        } ->
+          ecto_schema
+
+        %{
+          value:
+            {:parameterized, Ecto.Embedded,
+             %Ecto.Embedded{cardinality: :one, related: ecto_schema}}
+        } ->
+          ecto_schema
+
+        response_model ->
+          response_model
+      end
+
     json_schema =
-      if is_atom(response_model) && function_exported?(response_model, :to_json_schema, 0) do
-        response_model.to_json_schema()
+      if function_exported?(ecto_schema, :to_json_schema, 0) do
+        ecto_schema.to_json_schema()
       else
         JSONSchema.from_ecto_schema(response_model)
       end
