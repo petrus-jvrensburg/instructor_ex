@@ -551,7 +551,12 @@ defmodule Instructor do
   end
 
   defp params_for_mode(mode, response_model, params) do
-    json_schema = JSONSchema.from_ecto_schema(response_model)
+    json_schema =
+      if is_atom(response_model) && function_exported?(response_model, :to_json_schema, 0) do
+        response_model.to_json_schema()
+      else
+        JSONSchema.from_ecto_schema(response_model)
+      end
 
     params =
       params
