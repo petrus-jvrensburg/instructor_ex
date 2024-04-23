@@ -572,7 +572,7 @@ defmodule Instructor do
       end
 
     json_schema =
-      if function_exported?(ecto_schema, :to_json_schema, 0) do
+      if is_atom(ecto_schema) && function_exported?(ecto_schema, :to_json_schema, 0) do
         ecto_schema.to_json_schema()
       else
         JSONSchema.from_ecto_schema(response_model)
