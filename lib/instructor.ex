@@ -29,7 +29,7 @@ defmodule Instructor do
     * `:response_model` - The Ecto schema to validate the response against, or a valid map of Ecto types (see [Schemaless Ecto](https://hexdocs.pm/ecto/Ecto.Changeset.html#module-schemaless-changesets)). If no value is provided, a plain text response is returned.
     * `:stream` - Whether to stream the response or not. (defaults to `false`)
     * `:validation_context` - The validation context to use when validating the response. (defaults to `%{}`)
-    * `:mode` - The mode to use when parsing the response, :tools, :json, :md_json (defaults to `:tools`), generally speaking you don't need to change this unless you are not using OpenAI.
+    * `:mode` - The mode to use when parsing the response, :tools, :json, :md_json or :text (defaults to `:tools`). Generally speaking you don't need to change this unless you are not using OpenAI.
     * `:max_retries` - The maximum number of times to retry the LLM call if it fails, or does not pass validations.
                        (defaults to `0`)
 
@@ -138,6 +138,9 @@ defmodule Instructor do
 
       {{:array, response_model}, true} ->
         do_streaming_array_chat_completion(response_model, params, config)
+
+      {nil, true} ->
+        do_streaming_chat_completion(nil, params, config)
 
       {response_model, false} ->
         do_chat_completion(response_model, params, config)
@@ -259,6 +262,17 @@ defmodule Instructor do
       end
 
     changeset
+  end
+
+  defp do_streaming_chat_completion(nil, params, config) do
+    mode = Keyword.get(params, :mode)
+
+    if mode != :text do
+      raise "Streaming chat completion, without specifying a `:response_model`, is only supported for `:text` mode."
+    else
+      adapter(config).chat_completion(params, config)
+      |> Stream.map(&parse_stream_chunk_for_mode(mode, &1))
+    end
   end
 
   defp do_streaming_partial_array_chat_completion(response_model, params, config) do
@@ -419,11 +433,15 @@ defmodule Instructor do
   defp do_chat_completion(nil, params, config) do
     mode = Keyword.get(params, :mode)
 
-    with {:llm, {:ok, response}} <- {:llm, adapter(config).chat_completion(params, config)},
+    with {:mode, :text} <- {:mode, mode},
+         {:llm, {:ok, response}} <- {:llm, adapter(config).chat_completion(params, config)},
          {:text_response, {:ok, text_response}} <-
            {:text_response, parse_response_for_mode(mode, response)} do
       {:ok, text_response}
     else
+      {:mode, _mode} ->
+        raise "Chat completion without specifying a `:response_model`, is only supported for `:text` mode."
+
       {:llm, {:error, error}} ->
         {:error, "LLM Adapter Error: #{inspect(error)}"}
 
@@ -531,6 +549,9 @@ defmodule Instructor do
          ]
        }),
        do: chunk
+
+  defp parse_stream_chunk_for_mode(:text, %{"choices" => [%{"delta" => %{"content" => chunk}}]}),
+    do: chunk
 
   defp parse_stream_chunk_for_mode(_, %{"choices" => [%{"finish_reason" => "stop"}]}), do: ""
 
