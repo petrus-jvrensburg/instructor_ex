@@ -26,10 +26,10 @@ defmodule Instructor do
   Additionally, the following parameters are supported:
 
     * `:adapter` - The adapter to use for chat completion. (defaults to the configured adapter, which defaults to `Instructor.Adapters.OpenAI`)
-    * `:response_model` - The Ecto schema to validate the response against, or a valid map of Ecto types (see [Schemaless Ecto](https://hexdocs.pm/ecto/Ecto.Changeset.html#module-schemaless-changesets)).
+    * `:response_model` - The Ecto schema to validate the response against, or a valid map of Ecto types (see [Schemaless Ecto](https://hexdocs.pm/ecto/Ecto.Changeset.html#module-schemaless-changesets)). If no value is provided, a plain text response is returned.
     * `:stream` - Whether to stream the response or not. (defaults to `false`)
     * `:validation_context` - The validation context to use when validating the response. (defaults to `%{}`)
-    * `:mode` - The mode to use when parsing the response, :tools, :json, :md_json (defaults to `:tools`), generally speaking you don't need to change this unless you are not using OpenAI.
+    * `:mode` - The mode to use when parsing the response, :tools, :json, :md_json or :text (defaults to `:tools`). Generally speaking you don't need to change this unless you are not using OpenAI.
     * `:max_retries` - The maximum number of times to retry the LLM call if it fails, or does not pass validations.
                        (defaults to `0`)
     * `:before_request` - An optional callback function, to run just before passing a request to the LLM, useful for debugging.
@@ -122,13 +122,14 @@ defmodule Instructor do
           | {:error, String.t()}
           | Stream.t()
   def chat_completion(params, config \\ nil) do
+    is_stream = Keyword.get(params, :stream, false)
+    response_model = Keyword.get(params, :response_model, nil)
+    mode = Keyword.get(params, :mode) || (is_nil(response_model) && :text) || :tools
+
     params =
       params
+      |> Keyword.put(:mode, mode)
       |> Keyword.put_new(:max_retries, 0)
-      |> Keyword.put_new(:mode, :tools)
-
-    is_stream = Keyword.get(params, :stream, false)
-    response_model = Keyword.fetch!(params, :response_model)
 
     case {response_model, is_stream} do
       {{:partial, {:array, response_model}}, true} ->
@@ -139,6 +140,9 @@ defmodule Instructor do
 
       {{:array, response_model}, true} ->
         do_streaming_array_chat_completion(response_model, params, config)
+
+      {nil, true} ->
+        do_streaming_chat_completion(nil, params, config)
 
       {response_model, false} ->
         do_chat_completion(response_model, params, config)
@@ -260,6 +264,17 @@ defmodule Instructor do
       end
 
     changeset
+  end
+
+  defp do_streaming_chat_completion(nil, params, config) do
+    mode = Keyword.get(params, :mode)
+
+    if mode != :text do
+      raise "Streaming chat completion, without specifying a `:response_model`, is only supported for `:text` mode."
+    else
+      adapter(config).chat_completion(params, config)
+      |> Stream.map(&parse_stream_chunk_for_mode(mode, &1))
+    end
   end
 
   defp do_streaming_partial_array_chat_completion(response_model, params, config) do
@@ -417,6 +432,32 @@ defmodule Instructor do
     end)
   end
 
+  defp do_chat_completion(nil, params, config) do
+    mode = Keyword.get(params, :mode)
+
+    with {:mode, :text} <- {:mode, mode},
+         {:llm, {:ok, response}} <- {:llm, adapter(config).chat_completion(params, config)},
+         {:text_response, {:ok, text_response}} <-
+           {:text_response, parse_response_for_mode(mode, response)} do
+      {:ok, text_response}
+    else
+      {:mode, _mode} ->
+        raise "Chat completion without specifying a `:response_model`, is only supported for `:text` mode."
+
+      {:llm, {:error, error}} ->
+        {:error, "LLM Adapter Error: #{inspect(error)}"}
+
+      {:text_response, {:error, error}} ->
+        {:error, "Unexpected response returned from LLM: #{inspect(error)}"}
+
+      {:error, reason} ->
+        {:error, reason}
+
+      e ->
+        {:error, e}
+    end
+  end
+
   defp do_chat_completion(response_model, params, config) do
     validation_context = Keyword.get(params, :validation_context, %{})
     max_retries = Keyword.get(params, :max_retries)
@@ -495,6 +536,9 @@ defmodule Instructor do
        }),
        do: Jason.decode(args)
 
+  defp parse_response_for_mode(:text, %{"choices" => [%{"message" => %{"content" => content}}]}),
+    do: {:ok, content}
+
   defp parse_stream_chunk_for_mode(:md_json, %{"choices" => [%{"delta" => %{"content" => chunk}}]}),
        do: chunk
 
@@ -507,6 +551,9 @@ defmodule Instructor do
          ]
        }),
        do: chunk
+
+  defp parse_stream_chunk_for_mode(:text, %{"choices" => [%{"delta" => %{"content" => chunk}}]}),
+    do: chunk
 
   defp parse_stream_chunk_for_mode(_, %{"choices" => [%{"finish_reason" => "stop"}]}), do: ""
 
