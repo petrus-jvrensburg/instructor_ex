@@ -1,0 +1,61 @@
+# Plain-text responses
+
+```elixir
+Mix.install(
+  [
+    {:instructor, path: Path.expand("../../", __DIR__)}
+  ],
+  config: [
+    instructor: [
+      adapter: Instructor.Adapters.OpenAI,
+      openai: [api_key: System.fetch_env!("LB_OPENAI_API_KEY")]
+    ]
+  ]
+)
+```
+
+## Section
+
+```elixir
+Instructor.chat_completion(
+  model: "gpt-3.5-turbo",
+  stream: true,
+  mode: :json,
+  messages: [
+    %{
+      role: "user",
+      content: "Who was the first president of the United States?"
+    }
+  ]
+)
+|> Enum.to_list()
+```
+
+```elixir
+Instructor.chat_completion(
+  model: "gpt-3.5-turbo",
+  messages: [
+    %{
+      role: "user",
+      content: "Who was the first president of the United States?"
+    }
+  ]
+)
+```
+
+```elixir
+Instructor.Adapters.OpenAI.chat_completion(
+  [
+    model: "gpt-3.5-turbo",
+    messages: [
+      %{
+        role: "user",
+        content: "Who was the first president of the United States?"
+      }
+    ]
+  ],
+  nil
+)
+```
+
+<!-- livebook:{"offset":938,"stamp":{"token":"XCP.GmdX2kOFqEfCBk-qVTGl-GHjLQXzwklmXKDj_s11qb8yiyPTCcAM2Pu9pGSEBdQg0La_6d4TTLa1JPAb_qZ0GEE9vSKD-u3Uh7IDjOSXf1VzwT1jHbD73os","version":2}} -->
