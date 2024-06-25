@@ -274,17 +274,20 @@ Instructor.chat_completion(
 <!-- livebook:{"output":true} -->
 
 ```
-
-14:01:35.419 [debug] Retrying LLM call for NumberSeries:
+10:30:03.764 [debug] Retrying LLM call for NumberSeries:
 
  "series - The sum of the series must be even\nseries - should have at least 10 item(s)"
 
+10:30:04.794 [debug] Retrying LLM call for NumberSeries:
+
+ "series - The sum of the series must be even"
 ```
 
 <!-- livebook:{"output":true} -->
 
 ```
-{:ok, %NumberSeries{series: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}}
+{:ok,
+ %NumberSeries{series: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]}}
 ```
 
 Here we demonstrated using regular Lixar code to validate the outputs of an LLM, but we don't have to stop there. We can actually use the LLM to validate the outputs of the LLM.
