@@ -679,5 +679,3 @@ Instructor.chat_completion(
 ```
 
 And just like that, you can extend Instructor to get the LLM to return whatever you want.
-
-<!-- livebook:{"offset":16794,"stamp":{"token":"XCP.yiowOy7Djb4zHkaRAgQ1Kb24_aln57wbpCflB8RgJEYE4uiVHvvKdfuuUbC_AXgfml3RCkuCCHfDGdEOQ-H8aR41iccqk5cmIGzQi0FK6hGpogjPYUoa25M","version":2}} -->

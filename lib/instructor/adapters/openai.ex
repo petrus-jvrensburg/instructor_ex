@@ -3,6 +3,7 @@ defmodule Instructor.Adapters.OpenAI do
   Documentation for `Instructor.Adapters.OpenAI`.
   """
   @behaviour Instructor.Adapter
+  require Logger
 
   @impl true
   def chat_completion(params, config) do
@@ -50,8 +51,20 @@ defmodule Instructor.Adapters.OpenAI do
                   |> Enum.map(fn line ->
                     line
                     |> String.replace_prefix("data: ", "")
-                    |> Jason.decode!()
+                    |> Jason.decode()
                   end)
+                  |> Enum.map(fn
+                    {:ok, chunk} ->
+                      chunk
+
+                    {:error, reason} ->
+                      Logger.error(
+                        "Error parsing chunked JSON response from OpenAI: #{inspect(reason)}"
+                      )
+
+                      nil
+                  end)
+                  |> Enum.filter(&(not is_nil(&1)))
 
                 for chunk <- chunks do
                   send(pid, chunk)
