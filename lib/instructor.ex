@@ -586,7 +586,14 @@ defmodule Instructor do
 
   defp params_for_mode(mode, response_model, params) do
     {json_schema, params} =
-      Keyword.pop(params, :json_schema, JSONSchema.from_ecto_schema(response_model))
+      Keyword.pop(params, :json_schema)
+
+    json_schema =
+      if json_schema do
+        json_schema
+      else
+        JSONSchema.from_ecto_schema(response_model)
+      end
 
     params =
       params
